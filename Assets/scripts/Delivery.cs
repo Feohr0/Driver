@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class Delivery : MonoBehaviour
 {
+    public float points;
     Vector2 compassPosition = new Vector2();
     GameManager gameManager;
     [SerializeField] GameObject Car;
@@ -27,7 +28,7 @@ public class Delivery : MonoBehaviour
 
     private void Start()
     {
-
+        points = 0;
         spriteRenderer = GetComponent<SpriteRenderer>();
         SpawnPackage();
         Compass.SetActive(true);
@@ -77,6 +78,7 @@ public class Delivery : MonoBehaviour
 
         if (other.tag == "Customer" && hasPackage)
         {
+            points += 1;
             hasPackage = false;
             SpawnPackage();
             Debug.Log("Package Delivered Succsessfully");
