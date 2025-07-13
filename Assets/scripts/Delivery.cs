@@ -2,11 +2,14 @@ using UnityEngine;
 
 public class Delivery : MonoBehaviour
 {
+    [SerializeField] public Timer time;
     public float points;
     Vector2 compassPosition = new Vector2();
     GameManager gameManager;
     [SerializeField] GameObject Car;
-    [SerializeField] GameObject Customer;
+    [SerializeField] GameObject customerPrefab;
+  public  GameObject currentCustomer;
+
     [SerializeField] public GameObject Compass;
     [SerializeField] public GameObject packagePrefab;
     GameObject Package;
@@ -35,7 +38,7 @@ public class Delivery : MonoBehaviour
         CompassUpdater();
     }
 
-    private void LateUpdate()
+    private void Update()
     {
         
         CompassUpdater();
@@ -43,28 +46,76 @@ public class Delivery : MonoBehaviour
 
     public void SpawnPackage()
     {
-        // Yeni package spawn ediliyor
-        xdeðeri = Random.Range(minx, maxx);
-        ydeðeri = Random.Range(miny, maxy);
-        Vector2 konum = new Vector2(xdeðeri, ydeðeri);
+        for (int i = 0; i < 10; i++) // maksimum 10 deneme
+        {
+            float x = Random.Range(minx, maxx);
+            float y = Random.Range(miny, maxy);
+            Vector2 spawnPos = new Vector2(x, y);
 
-        GameObject newPackage = Instantiate(packagePrefab, konum, Quaternion.identity);
-        Package = newPackage; // Package artýk sahnedeki obje
-        Package.SetActive(true);
-        CompassUpdater();
+            float radius = 0.5f; // paketin yarýçapýna göre ayarla
 
+            // Etrafýnda çakýþan collider var mý?
+            Collider2D hit = Physics2D.OverlapCircle(spawnPos, radius);
+
+            if (hit == null)
+            {
+                GameObject newPackage = Instantiate(packagePrefab, spawnPos, Quaternion.identity);
+                Package = newPackage;
+                Package.SetActive(true);
+                CompassUpdater();
+                return; // baþarýyla spawn ettik
+            }
+        }
+
+        Debug.LogWarning("Uygun boþ alan bulunamadý, spawn edilemedi.");
     }
+
+    public void DestroyCurrentPackage()
+    {
+        if (Package != null)
+        {
+            Destroy(Package);
+            Package = null;
+        }
+    }
+    public void DestroyCurrentCustomer()
+    {
+        if (currentCustomer != null)
+        {
+            Destroy(currentCustomer);
+            currentCustomer = null;
+        }
+    }
+
+
     public void SpawnCustomer()
     {
-        x1deðeri = Random.Range(minx, maxx);
-        y1deðeri = Random.Range(miny, maxy);
-        Vector2 konum1 = new Vector2(x1deðeri, y1deðeri);
-        GameObject newCustomer = Instantiate(Customer, konum1, Quaternion.identity);
-        Customer = newCustomer;
-        Customer.SetActive(true);
-        CompassUpdater();
+        // Önceki müþteri varsa yok et
+        DestroyCurrentCustomer();
 
+        for (int i = 0; i < 10; i++) // maksimum 10 deneme
+        {
+            float x = Random.Range(minx, maxx);
+            float y = Random.Range(miny, maxy);
+            Vector2 spawnPos = new Vector2(x, y);
+            float radius = 0.5f;
+
+            Collider2D hit = Physics2D.OverlapCircle(spawnPos, radius);
+
+            if (hit == null)
+            {
+                GameObject newCustomer = Instantiate(customerPrefab, spawnPos, Quaternion.identity);
+                currentCustomer = newCustomer;
+                currentCustomer.SetActive(true);
+                CompassUpdater();
+                return;
+            }
+        }
+
+        Debug.LogWarning("Customer spawn edilecek boþ alan bulunamadý.");
     }
+
+
     void OnTriggerEnter2D(Collider2D other)
     {
         if (other.tag == "Package" && !hasPackage)
@@ -79,19 +130,21 @@ public class Delivery : MonoBehaviour
         if (other.tag == "Customer" && hasPackage)
         {
             points += 1;
+            time.time = time.resetTime;
             hasPackage = false;
             SpawnPackage();
             Debug.Log("Package Delivered Succsessfully");
             spriteRenderer.color = noPackageColor;
-
             Destroy(other.gameObject, delay);
+            
         }
     }
     void CompassUpdater()
     {
-        if (hasPackage && Customer != null)
+        if (hasPackage && currentCustomer != null)
+
         {
-            compassPosition = Car.transform.position - Customer.transform.position;
+            compassPosition = Car.transform.position - currentCustomer.transform.position;
             angle = Mathf.Atan2(compassPosition.y, compassPosition.x);
             degree = angle * Mathf.Rad2Deg;
             Compass.transform.rotation = Quaternion.Euler(0, 0, degree + 180);
